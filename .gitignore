@@ -1,4 +1,47 @@
+# Dependencies
 node_modules/
+
+# Generated output
 *.gif
+uploads/
+tmp/
+temp/
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 __MACOSX/
+
+# Environment & secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+
+# Editor & IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.editorconfig
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Puppeteer cache (optional — comment out if you want it cached in CI)
+# .cache/

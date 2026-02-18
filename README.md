@@ -2,6 +2,8 @@
 
 Convert animated SVGs into GIFs — instantly, locally, no cloud required.
 
+Built by **Ali Adnan Haider Darwish Al-Zaabi**.
+
 Comes with two ways to use it:
 
 - **Web UI** — drag and drop your SVG, tweak settings, watch the progress bar, download your GIF
@@ -11,12 +13,24 @@ Built on [Puppeteer](https://pptr.dev/) (headless Chrome renders each frame fait
 
 ---
 
+## Features
+
+- 🎨 **Drag-and-drop web UI** — zero build step, pure vanilla HTML/CSS/JS
+- ⌨️  **CLI tool** — scriptable, great for automation and batch processing
+- 🎞️  **Frame-accurate rendering** — Puppeteer renders every frame via `SVGAnimationElement.setCurrentTime()`
+- ⚙️  **Configurable output** — FPS, width, scale (retina), quality, hold duration, background color
+- 📊 **Real-time progress** — Server-Sent Events stream frame progress to the browser
+- 🔒 **Fully local** — no uploads to third-party services, runs on your machine
+- 🚀 **Auto-detects animation duration** — scans all `<animate>` elements automatically
+
+---
+
 ## Quick start
 
 **Requirements:** Node.js 18+
 
 ```bash
-git clone https://github.com/your-username/svg-to-gif.git
+git clone https://github.com/zaabi1995/svg-to-gif.git
 cd svg-to-gif
 npm install
 npm start
@@ -29,8 +43,6 @@ Open **http://localhost:3000** in your browser.
 ---
 
 ## Web UI
-
-![Web UI screenshot placeholder](docs/screenshot.png)
 
 1. **Drop** any animated `.svg` onto the page (or click **Browse SVG**)
 2. The SVG plays live in the preview area
@@ -143,4 +155,4 @@ done
 
 ## License
 
-MIT © 2026 Ali Al-Ali
+MIT © 2026 Ali Adnan Haider Darwish Al-Zaabi
