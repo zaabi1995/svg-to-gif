@@ -8,7 +8,8 @@ import { generateGif } from './core.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const app  = express();
+const app    = express();
+const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ── In-memory job store ───────────────────────────────────────────────────────
@@ -28,11 +29,11 @@ const jobs = new Map();
 
 // ── Static UI ─────────────────────────────────────────────────────────────────
 
-app.use(express.static(path.join(__dirname, 'public')));
+router.use(express.static(path.join(__dirname, 'public')));
 
 // ── POST /generate ────────────────────────────────────────────────────────────
 
-app.post('/generate', upload.single('svg'), (req, res) => {
+router.post('/generate', upload.single('svg'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No SVG file uploaded.' });
 
   const svgContent = req.file.buffer.toString('utf-8');
@@ -78,7 +79,7 @@ app.post('/generate', upload.single('svg'), (req, res) => {
 
 // ── GET /progress/:jobId  (Server-Sent Events) ────────────────────────────────
 
-app.get('/progress/:jobId', (req, res) => {
+router.get('/progress/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId);
   if (!job) return res.status(404).send('Job not found');
 
@@ -115,7 +116,7 @@ app.get('/progress/:jobId', (req, res) => {
 
 // ── GET /download/:jobId ──────────────────────────────────────────────────────
 
-app.get('/download/:jobId', (req, res) => {
+router.get('/download/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId);
   if (!job || job.status !== 'done' || !job.gifBuffer) {
     return res.status(404).json({ error: 'GIF not ready or not found.' });
@@ -124,6 +125,11 @@ app.get('/download/:jobId', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${job.filename}"`);
   res.send(job.gifBuffer);
 });
+
+// ── Mount router on both / and /svg-to-gif ────────────────────────────────────
+
+app.use('/svg-to-gif', router);
+app.use('/', router);
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

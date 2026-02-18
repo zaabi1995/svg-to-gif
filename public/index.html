@@ -531,6 +531,9 @@
 </main>
 
 <script>
+  // ── Base path (auto-detect from current URL) ──────────────────────────────
+  const BASE = window.location.pathname.replace(/\/$/, '').replace(/\/index\.html$/, '') || '';
+
   // ── State ──────────────────────────────────────────────────────────────────
   let currentFile     = null;
   let currentBg       = 'white';
@@ -684,7 +687,7 @@
 
     let jobId, gifFilename;
     try {
-      const resp = await fetch('/generate', { method: 'POST', body: formData });
+      const resp = await fetch(BASE + '/generate', { method: 'POST', body: formData });
       if (!resp.ok) throw new Error(await resp.text());
       ({ jobId, filename: gifFilename } = await resp.json());
     } catch (err) {
@@ -697,7 +700,7 @@
     currentJobId = jobId;
     showProgress(0, 1, 'Starting…');
 
-    const es = new EventSource(`/progress/${jobId}`);
+    const es = new EventSource(`${BASE}/progress/${jobId}`);
     currentEvtSrc = es;
 
     es.onmessage = e => {
@@ -752,7 +755,7 @@
   function showDownload(jobId, filename, size) {
     document.getElementById('download-section').classList.add('visible');
     const btn = document.getElementById('download-btn');
-    btn.href     = `/download/${jobId}`;
+    btn.href     = `${BASE}/download/${jobId}`;
     btn.download = filename;
     document.getElementById('download-label').textContent = `Download ${filename}`;
     document.getElementById('download-meta').textContent =
