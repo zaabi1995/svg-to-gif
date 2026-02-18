@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SVG → GIF Converter</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:    #034d57;
+      --teal-l:  #045e6b;
+      --green:   #4cb480;
+      --green-l: #5dc992;
+      --bg:      #f0f4f6;
+      --card:    #ffffff;
+      --border:  #dde3e8;
+      --text:    #0f2027;
+      --muted:   #5a7080;
+      --radius:  14px;
+      --shadow:  0 2px 12px rgba(3,77,87,.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-l) 100%);
+      color: #fff;
+      padding: 22px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(3,77,87,.25);
+    }
+    header svg.logo { width: 40px; height: auto; flex-shrink: 0; }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -.3px; }
+    header p  { font-size: .82rem; opacity: .75; margin-top: 2px; }
+
+    /* ── Layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      padding: 28px 32px;
+      max-width: 1160px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 16px 20px 0;
+    }
+
+    /* ── Drop zone ── */
+    #drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 48px 24px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      border: 2.5px dashed var(--border);
+      border-radius: var(--radius);
+      margin: 16px;
+      min-height: 320px;
+      position: relative;
+    }
+    #drop-zone.drag-over {
+      background: #eaf7f0;
+      border-color: var(--green);
+    }
+    #drop-zone .icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #e8f5ee, #d4eedf);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    #drop-zone h2 { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    #drop-zone p  { font-size: .83rem; color: var(--muted); }
+    #drop-zone .browse-btn {
+      margin-top: 4px;
+      padding: 7px 20px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      font-size: .83rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #drop-zone .browse-btn:hover { background: var(--green-l); }
+    #file-input { display: none; }
+
+    /* ── SVG Preview ── */
+    #preview-area {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+    }
+    #preview-area.active { display: flex; }
+
+    #svg-preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      min-height: 260px;
+      transition: background .2s;
+    }
+    #svg-preview svg { max-width: 100%; max-height: 340px; height: auto; }
+
+    #file-info-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: #f6f9fa;
+      border-top: 1px solid var(--border);
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    #file-info-bar .badge {
+      background: var(--teal);
+      color: #fff;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: .7rem;
+      font-weight: 600;
+    }
+    .change-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: .75rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: border-color .15s, color .15s;
+    }
+    .change-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+    /* ── Settings panel ── */
+    .settings-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .settings-body { padding: 16px 20px; flex: 1; }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+      margin-bottom: 14px;
+    }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: .88rem;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    /* Slider */
+    .slider-row { display: flex; align-items: center; gap: 8px; }
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 4px;
+      background: var(--border);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--green);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+    .slider-val {
+      min-width: 32px;
+      text-align: right;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    /* Button group */
+    .btn-group {
+      display: flex;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+    }
+    .btn-group button {
+      flex: 1;
+      padding: 7px 0;
+      background: #fff;
+      border: none;
+      border-right: 1.5px solid var(--border);
+      font-size: .82rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: background .12s, color .12s;
+    }
+    .btn-group button:last-child { border-right: none; }
+    .btn-group button.active {
+      background: var(--teal);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* BG color row */
+    .bg-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color .12s, transform .1s;
+      flex-shrink: 0;
+    }
+    .color-swatch:hover { transform: scale(1.1); }
+    .color-swatch.active { border-color: var(--teal); }
+    .color-swatch.white  { background: #ffffff; box-shadow: inset 0 0 0 1px #ddd; }
+    .color-swatch.black  { background: #000000; }
+    .color-swatch.gray   { background: #f0f0f0; box-shadow: inset 0 0 0 1px #ddd; }
+    .color-swatch.custom { position: relative; overflow: hidden; }
+    .color-swatch.custom input[type="color"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+      border: none; padding: 0;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 4px 0 14px; }
+
+    /* ── Generate button ── */
+    #gen-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-l) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: .2px;
+    }
+    #gen-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    #gen-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Progress ── */
+    #progress-section {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px 20px;
+      background: #f6f9fa;
+      border-top: 1px solid var(--border);
+    }
+    #progress-section.visible { display: flex; }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .8rem;
+    }
+    .progress-header .label { color: var(--muted); font-weight: 500; }
+    .progress-header .count { color: var(--teal); font-weight: 700; }
+
+    .progress-bar-track {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--teal), var(--green));
+      width: 0%;
+      transition: width .25s ease;
+    }
+
+    /* ── Download ── */
+    #download-section {
+      display: none;
+      padding: 14px 20px;
+      background: #f0faf4;
+      border-top: 1px solid #c8e8d4;
+    }
+    #download-section.visible { display: block; }
+
+    #download-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-l) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .92rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .15s, transform .1s;
+    }
+    #download-btn:hover { opacity: .9; transform: translateY(-1px); }
+    #download-meta {
+      text-align: center;
+      font-size: .75rem;
+      color: #3a8a5e;
+      margin-top: 6px;
+    }
+
+    /* ── Error ── */
+    #error-section {
+      display: none;
+      padding: 12px 20px;
+      background: #fff5f5;
+      border-top: 1px solid #f5c2c2;
+      font-size: .82rem;
+      color: #c0392b;
+    }
+    #error-section.visible { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      main { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <!-- Alali-style mark icon, simplified -->
+  <svg class="logo" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="46" height="46" rx="10" fill="rgba(255,255,255,0.12)"/>
+    <path d="M23 8L13 30h4l2-5h8l2 5h4L23 8zm0 7l3 9h-6l3-9z" fill="#4cb480"/>
+    <path d="M13 32h20v2H13z" fill="rgba(255,255,255,0.4)"/>
+  </svg>
+  <div>
+    <h1>SVG → GIF Converter</h1>
+    <p>Turn any animated SVG into a GIF — adjust settings, then download.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Left: Upload / Preview -->
+  <div class="card" id="left-card" style="display:flex; flex-direction:column;">
+
+    <!-- Drop zone (shown when no file) -->
+    <div id="drop-zone">
+      <div class="icon">🎨</div>
+      <h2>Drop your animated SVG here</h2>
+      <p>or click to browse your files</p>
+      <button class="browse-btn" onclick="document.getElementById('file-input').click()">Browse SVG</button>
+      <input type="file" id="file-input" accept=".svg,image/svg+xml" />
+    </div>
+
+    <!-- Preview (shown after file loaded) -->
+    <div id="preview-area">
+      <div id="svg-preview"></div>
+      <div id="file-info-bar">
+        <span class="badge">SVG</span>
+        <span id="file-name-label">—</span>
+        <span id="file-anim-label" style="color: var(--green); font-weight:600;"></span>
+        <button class="change-btn" onclick="resetFile()">Change file</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: Settings + Actions -->
+  <div class="card settings-card">
+    <div class="card-title">Settings</div>
+    <div class="settings-body">
+
+      <div class="field-group">
+        <div class="field">
+          <label>FPS</label>
+          <div class="slider-row">
+            <input type="range" id="fps" min="5" max="60" value="24" step="1"
+              oninput="document.getElementById('fps-val').textContent=this.value" />
+            <span class="slider-val" id="fps-val">24</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Hold (sec)</label>
+          <div class="slider-row">
+            <input type="range" id="hold" min="0" max="10" value="2" step="0.5"
+              oninput="document.getElementById('hold-val').textContent=this.value" />
+            <span class="slider-val" id="hold-val">2</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Width (px)</label>
+          <input type="number" id="width" value="800" min="100" max="3000" step="50" />
+        </div>
+        <div class="field">
+          <label>Scale</label>
+          <div class="btn-group" id="scale-group">
+            <button onclick="setGroup('scale-group',this)" data-val="1">1×</button>
+            <button onclick="setGroup('scale-group',this)" data-val="2" class="active">2×</button>
+            <button onclick="setGroup('scale-group',this)" data-val="3">3×</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Quality</label>
+          <div class="btn-group" id="quality-group">
+            <button onclick="setGroup('quality-group',this)" data-val="1" class="active">Best</button>
+            <button onclick="setGroup('quality-group',this)" data-val="3">Good</button>
+            <button onclick="setGroup('quality-group',this)" data-val="7">Fast</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <div class="bg-row" id="bg-row">
+            <div class="color-swatch white active" data-color="white" title="White" onclick="setBg(this)"></div>
+            <div class="color-swatch black" data-color="black" title="Black" onclick="setBg(this)"></div>
+            <div class="color-swatch gray"  data-color="#f0f0f0" title="Light gray" onclick="setBg(this)"></div>
+            <div class="color-swatch custom" title="Custom color">
+              <input type="color" id="custom-color" value="#ffffff"
+                oninput="setBgCustom(this.value)"
+                onchange="setBgCustom(this.value)" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button id="gen-btn" onclick="startGeneration()" disabled>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Generate GIF
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-section">
+      <div class="progress-header">
+        <span class="label" id="progress-label">Capturing frames…</span>
+        <span class="count" id="progress-count">0 / 0</span>
+      </div>
+      <div class="progress-bar-track">
+        <div id="progress-bar"></div>
+      </div>
+    </div>
+
+    <!-- Download -->
+    <div id="download-section">
+      <a id="download-btn" href="#" download>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2v8M5 7l3 3 3-3M2 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="download-label">Download GIF</span>
+      </a>
+      <div id="download-meta"></div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-section">
+      <strong>Error:</strong> <span id="error-msg"></span>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentFile     = null;
+  let currentBg       = 'white';
+  let currentJobId    = null;
+  let currentEvtSrc   = null;
+  let currentFilename = 'output';
+
+  // ── File handling ──────────────────────────────────────────────────────────
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const previewArea = document.getElementById('preview-area');
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+  dropZone.addEventListener('click', e => {
+    if (e.target.classList.contains('browse-btn')) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  function loadFile(file) {
+    if (!file.name.match(/\.svg$/i) && file.type !== 'image/svg+xml') {
+      alert('Please upload an SVG file.');
+      return;
+    }
+    currentFile     = file;
+    currentFilename = file.name.replace(/\.svg$/i, '');
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const svgText = e.target.result;
+      showPreview(svgText, file.name);
+    };
+    reader.readAsText(file);
+  }
+
+  function showPreview(svgText, filename) {
+    const previewEl = document.getElementById('svg-preview');
+    previewEl.innerHTML = svgText;
+
+    // Ensure the SVG inside preview is responsive
+    const svgEl = previewEl.querySelector('svg');
+    if (svgEl) {
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.style.maxWidth  = '100%';
+      svgEl.style.maxHeight = '340px';
+      svgEl.style.height    = 'auto';
+    }
+
+    // Detect animation end
+    const animEnd = detectAnimEnd(svgText);
+    document.getElementById('file-name-label').textContent = filename;
+    document.getElementById('file-anim-label').textContent = `${animEnd.toFixed(2)}s animation`;
+
+    // Show preview, hide drop zone
+    dropZone.style.display   = 'none';
+    previewArea.classList.add('active');
+    applyBgToPreview(currentBg);
+
+    // Enable generate button
+    document.getElementById('gen-btn').disabled = false;
+
+    // Reset result sections
+    resetResults();
+  }
+
+  function resetFile() {
+    currentFile   = null;
+    fileInput.value = '';
+    dropZone.style.display = '';
+    previewArea.classList.remove('active');
+    document.getElementById('gen-btn').disabled = true;
+    resetResults();
+  }
+
+  function detectAnimEnd(svg) {
+    let max = 1;
+    const re = /<animate[^>]*>/g;
+    let m;
+    while ((m = re.exec(svg)) !== null) {
+      const tag = m[0];
+      const b = parseFloat((tag.match(/\bbegin="([^"]*)"/) || [])[1]) || 0;
+      const d = parseFloat((tag.match(/\bdur="([^"]*)"/)   || [])[1]) || 0;
+      max = Math.max(max, b + d);
+    }
+    return max;
+  }
+
+  // ── Button groups ──────────────────────────────────────────────────────────
+  function setGroup(groupId, btn) {
+    document.querySelectorAll(`#${groupId} button`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function getGroup(groupId) {
+    const active = document.querySelector(`#${groupId} button.active`);
+    return active ? active.dataset.val : null;
+  }
+
+  // ── Background color ───────────────────────────────────────────────────────
+  function setBg(swatch) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    currentBg = swatch.dataset.color;
+    applyBgToPreview(currentBg);
+  }
+
+  function setBgCustom(val) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    document.querySelector('.color-swatch.custom').classList.add('active');
+    document.querySelector('.color-swatch.custom').style.background = val;
+    currentBg = val;
+    applyBgToPreview(currentBg);
+  }
+
+  function applyBgToPreview(bg) {
+    document.getElementById('svg-preview').style.background = bg;
+  }
+
+  // ── Generate ───────────────────────────────────────────────────────────────
+  async function startGeneration() {
+    if (!currentFile) return;
+
+    resetResults();
+
+    const genBtn = document.getElementById('gen-btn');
+    genBtn.disabled = true;
+    genBtn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite">⏳</span> Generating…`;
+
+    const formData = new FormData();
+    formData.append('svg',      currentFile);
+    formData.append('filename', currentFilename);
+    formData.append('fps',      document.getElementById('fps').value);
+    formData.append('width',    document.getElementById('width').value);
+    formData.append('scale',    getGroup('scale-group')   ?? '2');
+    formData.append('quality',  getGroup('quality-group') ?? '1');
+    formData.append('hold',     document.getElementById('hold').value);
+    formData.append('bg',       currentBg);
+
+    let jobId, gifFilename;
+    try {
+      const resp = await fetch('/generate', { method: 'POST', body: formData });
+      if (!resp.ok) throw new Error(await resp.text());
+      ({ jobId, filename: gifFilename } = await resp.json());
+    } catch (err) {
+      showError(err.message);
+      genBtn.disabled = false;
+      genBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate GIF`;
+      return;
+    }
+
+    currentJobId = jobId;
+    showProgress(0, 1, 'Starting…');
+
+    const es = new EventSource(`/progress/${jobId}`);
+    currentEvtSrc = es;
+
+    es.onmessage = e => {
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'progress') {
+        const label = data.phase === 'hold'
+          ? 'Adding hold frame…'
+          : 'Capturing frames…';
+        showProgress(data.current, data.total, label);
+      }
+
+      if (data.type === 'done') {
+        es.close();
+        showProgress(1, 1, 'Done!');
+        setTimeout(() => {
+          showDownload(jobId, gifFilename, data.size);
+          genBtn.disabled = false;
+          genBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate GIF`;
+        }, 400);
+      }
+
+      if (data.type === 'error') {
+        es.close();
+        showError(data.message);
+        genBtn.disabled = false;
+        genBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate GIF`;
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      showError('Connection to server lost. Make sure the server is running.');
+      genBtn.disabled = false;
+      genBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate GIF`;
+    };
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function showProgress(current, total, label) {
+    const sec = document.getElementById('progress-section');
+    sec.classList.add('visible');
+    document.getElementById('progress-label').textContent = label;
+    document.getElementById('progress-count').textContent =
+      total > 1 ? `${current} / ${total}` : '';
+    const pct = total > 0 ? (current / total) * 100 : 0;
+    document.getElementById('progress-bar').style.width = `${pct}%`;
+    document.getElementById('download-section').classList.remove('visible');
+    document.getElementById('error-section').classList.remove('visible');
+  }
+
+  function showDownload(jobId, filename, size) {
+    document.getElementById('download-section').classList.add('visible');
+    const btn = document.getElementById('download-btn');
+    btn.href     = `/download/${jobId}`;
+    btn.download = filename;
+    document.getElementById('download-label').textContent = `Download ${filename}`;
+    document.getElementById('download-meta').textContent =
+      `${(size / 1024).toFixed(0)} KB  ·  GIF ready`;
+  }
+
+  function showError(msg) {
+    document.getElementById('error-section').classList.add('visible');
+    document.getElementById('error-msg').textContent = msg;
+  }
+
+  function resetResults() {
+    document.getElementById('progress-section').classList.remove('visible');
+    document.getElementById('download-section').classList.remove('visible');
+    document.getElementById('error-section').classList.remove('visible');
+    document.getElementById('progress-bar').style.width = '0%';
+    if (currentEvtSrc) { currentEvtSrc.close(); currentEvtSrc = null; }
+  }
+</script>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files created during generation
+_temp_*.html
+
+# Output GIFs (optional — remove these lines if you want to commit sample outputs)
+*.gif
+
+# Logs
+npm-debug.log*

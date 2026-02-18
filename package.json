@@ -1,0 +1,32 @@
+{
+  "name": "svg-to-gif",
+  "version": "2.0.0",
+  "description": "Convert animated SVGs to GIFs — local web UI with drag-and-drop + CLI tool",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "cli": "node generate.mjs"
+  },
+  "keywords": [
+    "svg",
+    "gif",
+    "animation",
+    "converter",
+    "puppeteer",
+    "cli",
+    "web"
+  ],
+  "author": "Ali Al-Ali",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "gif-encoder-2": "^1.0.5",
+    "multer": "^2.0.2",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^24.37.3"
+  }
+}
