@@ -134,6 +134,7 @@ app.use('/', router);
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT ?? 3000;
-app.listen(PORT, () => {
-  console.log(`\n  SVG → GIF  ready at  http://localhost:${PORT}\n`);
+const HOST = process.env.HOST ?? '127.0.0.1';
+app.listen(PORT, HOST, () => {
+  console.log(`\n  SVG → GIF  ready at  http://${HOST}:${PORT}\n`);
 });
